@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screen/bottom_navbar.dart';
+import 'package:flutter_application_1/screen/dashboard_admin.dart';
 import 'package:flutter_application_1/screen/login.dart';
 import 'package:flutter_application_1/screen/register.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,7 +19,7 @@ class KantinModernApp extends StatelessWidget {
         primaryColor: Colors.orange,
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      home: HomeScreen(),
+      home: DashboardAdmin(),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter_application_1/service/Auth_manager.dart';
+import 'package:flutter_application_1/screen/login.dart';
 
 class DashboardUser extends StatefulWidget {
   @override
@@ -27,9 +28,35 @@ class _DashboardUserState extends State<DashboardUser> {
     });
   }
 
-  void _logout() async {
-    await AuthManager.logout();
-    Navigator.pushReplacementNamed(context, '/login');
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Konfirmasi Logout'),
+          content: const Text('Anda yakin ingin logout?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Tidak'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await AuthManager.logout();
+                Navigator.pushAndRemoveUntil(
+                  dialogContext,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (Route<dynamic> route) => false,
+                );
+              },
+              child: const Text('Ya'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -56,7 +83,7 @@ class _DashboardUserState extends State<DashboardUser> {
                 child: Padding(
                   padding: EdgeInsets.only(right: 20, top: 10),
                   child: InkWell(
-                    onTap: _logout,
+                    onTap: () => _showLogoutConfirmationDialog(context),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       decoration: BoxDecoration(
