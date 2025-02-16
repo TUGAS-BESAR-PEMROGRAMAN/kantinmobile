@@ -3,21 +3,25 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_application_1/model/add_produk.dart';
+import 'package:flutter_application_1/service/add_produk_service.dart';
 
 class DashboardAdmin extends StatelessWidget {
+  final ProductService productService = ProductService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.orange.shade50,
+      backgroundColor: const Color.fromARGB(255, 255, 191, 42),
       appBar: AppBar(
-        backgroundColor: Colors.orange,
+        backgroundColor: const Color.fromARGB(255, 233, 170, 9),
         title: Text(
-          'Dashboard Admin',
-          style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+          'Admin Dashboard',
+          style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: Icon(LucideIcons.logOut, color: Colors.white),
+            icon: const Icon(LucideIcons.logOut, color: Colors.white),
             onPressed: () {
               // Tambahkan fungsi logout di sini
             },
@@ -29,11 +33,11 @@ class DashboardAdmin extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              '',
+              'Manage Your Products',
               style: GoogleFonts.poppins(
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade700),
+                  color: const Color.fromARGB(255, 3, 3, 3)),
             ),
           ),
           Expanded(
@@ -46,13 +50,13 @@ class DashboardAdmin extends StatelessWidget {
                   mainAxisSpacing: 16,
                   shrinkWrap: true,
                   children: [
-                    _buildCard(
-                        '', LucideIcons.activitySquare, Colors.orange.shade300),
-                    _buildCard('Add Product', LucideIcons.shoppingCart,
-                        Colors.orange.shade400, context),
-                    _buildCard(
-                        'Products', LucideIcons.box, Colors.orange.shade500),
-                    _buildCard('', LucideIcons.rainbow, Colors.orange.shade600),
+                    _buildCard('', LucideIcons.layout,
+                        const Color.fromARGB(255, 0, 140, 255)),
+                    _buildCard('Add Product', LucideIcons.plusCircle,
+                        const Color.fromARGB(255, 149, 164, 176), context),
+                    _buildCard('Products', LucideIcons.box,
+                        const Color.fromARGB(255, 164, 170, 176)),
+                    _buildCard('', LucideIcons.layout, Colors.blue.shade600),
                   ],
                 ),
               ),
@@ -61,9 +65,11 @@ class DashboardAdmin extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              'Manage your store efficiently and easily!',
+              'Effortless product management at your fingertips!',
               style: GoogleFonts.poppins(
-                  fontSize: 16, color: Colors.orange.shade700),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  color: const Color.fromARGB(255, 0, 0, 0)),
               textAlign: TextAlign.center,
             ),
           ),
@@ -89,7 +95,7 @@ class DashboardAdmin extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 48, color: Colors.white),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               title,
               style: GoogleFonts.poppins(
@@ -129,9 +135,11 @@ class DashboardAdmin extends StatelessWidget {
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
                 onChanged: (value) {
-                  kategori = value!;
+                  if (value != null) {
+                    kategori = value;
+                  }
                 },
-                decoration: InputDecoration(labelText: 'Kategori'),
+                decoration: const InputDecoration(labelText: 'Kategori'),
               ),
             ],
           ),
@@ -139,27 +147,43 @@ class DashboardAdmin extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
-              bool success = await _submitProduct(
-                namaController.text,
-                deskripsiController.text,
-                hargaController.text,
-                gambarController.text,
-                stokController.text,
-                kategori,
+              if (namaController.text.isEmpty ||
+                  deskripsiController.text.isEmpty ||
+                  hargaController.text.isEmpty ||
+                  gambarController.text.isEmpty ||
+                  stokController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Semua kolom harus diisi!')),
+                );
+                return;
+              }
+
+              Product newProduct = Product(
+                namaProduk: namaController.text,
+                deskripsi: deskripsiController.text,
+                harga: double.tryParse(hargaController.text) ?? 0.0,
+                gambar: gambarController.text,
+                stok: int.tryParse(stokController.text) ?? 0,
+                kategori: kategori,
               );
+
+              bool success = await productService.addProduct(newProduct);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                    content: Text(success
-                        ? 'Produk berhasil ditambahkan!'
-                        : 'Gagal menambahkan produk. Coba lagi.')),
+                  content: Text(success
+                      ? 'Produk "${newProduct.namaProduk}" berhasil ditambahkan! 🎉'
+                      : 'Gagal menambahkan produk: ${newProduct.namaProduk}. Pastikan data benar dan coba lagi! ❌'),
+                  backgroundColor: success ? Colors.green : Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                ),
               );
             },
-            child: Text('Submit'),
+            child: const Text('Submit'),
           ),
         ],
       ),
@@ -172,46 +196,12 @@ class DashboardAdmin extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextField(
         controller: controller,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          border: const OutlineInputBorder(),
         ),
-        keyboardType: keyboardType,
       ),
     );
-  }
-
-  Future<bool> _submitProduct(String nama, String deskripsi, String harga,
-      String gambar, String stok, String kategori) async {
-    final url = Uri.parse(
-        'https://ats-714220023-serlipariela-38bba14820aa.herokuapp.com/add-product');
-    final Map<String, dynamic> data = {
-      'nama_produk': nama,
-      'deskripsi': deskripsi,
-      'harga': double.tryParse(harga) ?? 0,
-      'gambar': gambar,
-      'stok': int.tryParse(stok) ?? 0,
-      'kategori': kategori,
-    };
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data),
-      );
-
-      print("Response Status Code: ${response.statusCode}");
-      print("Response Body: ${response.body}");
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      print("Error: $e");
-      return false;
-    }
   }
 }

@@ -15,6 +15,9 @@ dependencies:
   google_fonts: ^5.1.0
   lucide_icons: ^0.257.0
   shared_preferences: ^2.5.2
+  http: ^1.0.0  
+  flutter_cors: ^1.0.0
+
 
 dev_dependencies:
   flutter_test:
