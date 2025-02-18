@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screen/bottom_navbar.dart';
+import 'package:flutter_application_1/screen/dashboard_admin.dart';
 import 'package:flutter_application_1/screen/home.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_application_1/main.dart'; // Import HomeScreen
@@ -301,6 +302,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: Text(
                         "Belum punya akun? Daftar",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    //untuk halaman admin
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DashboardAdmin(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Apakah Anda Admin? login",
                         style: GoogleFonts.poppins(
                           color: Colors.white,
                           fontSize: 14,
