@@ -19,7 +19,7 @@ class KantinModernApp extends StatelessWidget {
         primaryColor: Colors.orange,
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      home: DashboardAdmin(),
+      home: HomeScreen(),
     );
   }
 }

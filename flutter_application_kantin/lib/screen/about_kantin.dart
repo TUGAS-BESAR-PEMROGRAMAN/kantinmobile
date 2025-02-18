@@ -39,6 +39,52 @@ class _AboutKantinState extends State<AboutKantin> {
                 textAlign: TextAlign.justify,
               ),
               SizedBox(height: 30),
+              Text(
+                'Pencetus Kantin Modern',
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10),
+              Column(
+                children: [
+                  Image.network(
+                    "https://github.com/qintharganteng.png",
+                    height: 200,
+                    fit: BoxFit.cover,
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Sang Visioner di Balik Kantin Modern',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 20),
+                  Image.network(
+                    "https://github.com/serlip06.png",
+                    height: 200,
+                    fit: BoxFit.cover,
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Pencetus Ide Kantin Modern',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              SizedBox(height: 30),
               ExpansionTile(
                 title: Text(
                   'Fasilitas Kami',

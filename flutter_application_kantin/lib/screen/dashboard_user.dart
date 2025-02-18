@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter_application_1/service/Auth_manager.dart';
 import 'package:flutter_application_1/screen/login.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class DashboardUser extends StatefulWidget {
   @override
@@ -13,6 +15,8 @@ class DashboardUser extends StatefulWidget {
 class _DashboardUserState extends State<DashboardUser> {
   String loggedInUsername = "User";
   String loggedInRole = "Customer";
+
+  Map<String, dynamic> latestProduct = {};
 
   @override
   void initState() {
@@ -26,6 +30,71 @@ class _DashboardUserState extends State<DashboardUser> {
       loggedInUsername = prefs.getString('username') ?? "User";
       loggedInRole = prefs.getString('role') ?? "Customer";
     });
+  }
+
+  Future<void> _fetchLatestProduct() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://ats-714220023-serlipariela-38bba14820aa.herokuapp.com/produk'),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        // Assuming the product list is inside a key like 'data'
+        if (responseData.containsKey('data')) {
+          final List products = responseData['data'];
+
+          if (products.isNotEmpty) {
+            // Sort the products by 'created_at' to get the latest one
+            products.sort((a, b) => DateTime.parse(b['created_at'])
+                .compareTo(DateTime.parse(a['created_at'])));
+            setState(() {
+              latestProduct = products[0]; // Assign the latest product
+            });
+          }
+        }
+      } else {
+        throw Exception('Failed to load products');
+      }
+    } catch (e) {
+      print('Error fetching products: $e');
+    }
+  }
+
+  void _showLatestProductDialog() {
+    if (latestProduct.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Wah, Ada Produk Baru!'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(latestProduct['nama_produk']),
+                SizedBox(height: 10),
+                Image.network(latestProduct['gambar']),
+                SizedBox(height: 10),
+                Text('Deskripsi: ${latestProduct['deskripsi']}'),
+                Text('Harga: Rp ${latestProduct['harga']}'),
+                Text('Stok: ${latestProduct['stok']}'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   void _showLogoutConfirmationDialog(BuildContext context) {
@@ -62,164 +131,232 @@ class _DashboardUserState extends State<DashboardUser> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 255, 121, 11),
-              Color.fromARGB(255, 255, 179, 0),
-            ],
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color.fromARGB(255, 255, 121, 11),
+                  Color.fromARGB(255, 255, 179, 0),
+                ],
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: EdgeInsets.only(right: 20, top: 10),
-                  child: InkWell(
-                    onTap: () => _showLogoutConfirmationDialog(context),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(2, 4),
-                          ),
-                        ],
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              child: Column(
+                children: [
+                  // Bagian atas: Foto, Nama, Role, Logout & Notifikasi
+                  Row(
+                    children: [
+                      // Foto & Nama
+                      Expanded(
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Colors.white,
+                              child: CircleAvatar(
+                                radius: 27,
+                                backgroundImage: NetworkImage(
+                                    'https://avatars.githubusercontent.com/u/57899334?v=4'),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Hi, $loggedInUsername',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                    overflow: TextOverflow
+                                        .ellipsis, // Handles long text
+                                    maxLines: 1,
+                                  ),
+                                  Text(
+                                    '$loggedInRole',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 14, color: Colors.white),
+                                    overflow: TextOverflow
+                                        .ellipsis, // Handles long text
+                                    maxLines: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+
+                      // Notifikasi & Logout
+                      Row(
                         children: [
-                          Icon(Icons.logout, color: Colors.white, size: 20),
+                          // Notifikasi Icon
+                          InkWell(
+                            onTap: () async {
+                              // Fetch latest product when tapped
+                              await _fetchLatestProduct();
+                              _showLatestProductDialog();
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(Icons.notifications,
+                                  color: Colors.white, size: 24),
+                            ),
+                          ),
                           SizedBox(width: 8),
-                          Text(
-                            "Logout",
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+
+                          // Logout Button
+                          InkWell(
+                            onTap: () => _showLogoutConfirmationDialog(context),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 6,
+                                    offset: Offset(2, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.logout,
+                                      color: Colors.white, size: 18),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    "Logout",
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
+                    ],
+                  ),
+
+                  SizedBox(height: 10),
+                  Text(
+                    'Welcome!',
+                    style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
+                  SizedBox(height: 20),
+
+                  // Info Menarik
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _buildInfoCard(
+                              Icons.health_and_safety,
+                              "Manfaat Makanan Sehat",
+                              "Makanan sehat meningkatkan energi, memperkuat imun, dan baik untuk metabolisme tubuh."),
+                          _buildInfoCard(
+                              Icons.fastfood,
+                              "Kenapa Harus Memesan di Kantin Modern?",
+                              "Makanan berkualitas, harga terjangkau, dan pelayanan cepat dengan sistem digital."),
+                          _buildInfoCard(
+                              Icons.fitness_center,
+                              "Pentingnya Sarapan Pagi",
+                              "Sarapan pagi membantu meningkatkan konsentrasi dan memberi energi untuk beraktivitas."),
+                          _buildInfoCard(
+                              Icons.local_florist,
+                              "Makanan Organik vs Non-Organik",
+                              "Makanan organik bebas pestisida dan lebih sehat untuk tubuh."),
+                          _buildInfoCard(
+                              Icons.access_time,
+                              "Kapan Waktu Terbaik Makan?",
+                              "Pagi untuk energi, siang untuk nutrisi, dan malam tidak terlalu berat untuk pencernaan."),
+                          _buildInfoCard(
+                              Icons.local_drink,
+                              "Pentingnya Minum Air Putih",
+                              "Air putih menjaga keseimbangan cairan tubuh dan membantu metabolisme."),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-              SizedBox(height: 20),
-              FadeInDown(
-                child: CircleAvatar(
-                  radius: 55,
-                  backgroundColor: Colors.white,
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundImage: NetworkImage(
-                        'https://avatars.githubusercontent.com/u/57899334?v=4'),
-                  ),
-                ),
-              ),
-              SizedBox(height: 15),
-              FadeInDown(
-                delay: Duration(milliseconds: 200),
-                child: Text(
-                  'Hello, $loggedInUsername',
-                  style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ),
-              FadeInDown(
-                delay: Duration(milliseconds: 300),
-                child: Text(
-                  '$loggedInRole',
-                  style: GoogleFonts.poppins(
-                      color: const Color.fromARGB(255, 255, 255, 255),
-                      fontSize: 16),
-                ),
-              ),
-              FadeInDown(
-                delay: Duration(milliseconds: 400),
-                child: Text(
-                  'Welcome!',
-                  style: GoogleFonts.poppins(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ),
-              SizedBox(height: 30),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildAnimatedCard('Keranjang', '3 Items',
-                        Icons.shopping_cart, Colors.teal),
-                    _buildAnimatedCard('Notifikasi', '2 New Messages',
-                        Icons.notifications, Colors.amber),
-                  ],
-                ),
-              ),
-              SizedBox(height: 40),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildAnimatedCard(
-      String title, String subtitle, IconData icon, Color iconColor) {
-    return GestureDetector(
-      onTap: () {},
-      child: BounceInUp(
-        child: Container(
-          width: 150,
-          padding: EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10,
-                spreadRadius: 3,
+  // Fungsi untuk menampilkan notifikasi
+  void _showNotification() {
+    print("Notifikasi ditekan!");
+  }
+
+  // Widget untuk Card Informasi
+  Widget _buildInfoCard(IconData icon, String title, String description) {
+    return FadeInUp(
+      duration: Duration(milliseconds: 500),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 15),
+        padding: EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: Offset(2, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: Colors.deepOrange, size: 30),
+            SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    description,
+                    style: GoogleFonts.poppins(fontSize: 14),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: iconColor, size: 45),
-              SizedBox(height: 10),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.white),
-              ),
-              SizedBox(height: 8),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

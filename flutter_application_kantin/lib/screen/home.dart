@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Tambahkan ini
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreenProduk extends StatefulWidget {
   @override
@@ -15,7 +15,8 @@ class _HomeScreenState extends State<HomeScreenProduk>
   List<dynamic> filteredProducts = [];
   bool isLoading = true;
   late TabController _tabController;
-  String loggedInUsername = "User"; // Default username
+  String loggedInUsername = "User";
+  ValueNotifier<int> cartCountNotifier = ValueNotifier<int>(0);
 
   @override
   void initState() {
@@ -23,7 +24,8 @@ class _HomeScreenState extends State<HomeScreenProduk>
     fetchProducts();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(filterProducts);
-    _loadUsername(); // Ambil username setelah login
+    _loadUsername();
+    _loadCartCount();
   }
 
   Future<void> _loadUsername() async {
@@ -33,11 +35,10 @@ class _HomeScreenState extends State<HomeScreenProduk>
     });
   }
 
-  @override
-  void dispose() {
-    _tabController.removeListener(filterProducts);
-    _tabController.dispose();
-    super.dispose();
+  Future<void> _loadCartCount() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> cart = prefs.getStringList('cart') ?? [];
+    cartCountNotifier.value = cart.length;
   }
 
   Future<void> fetchProducts() async {
@@ -69,23 +70,116 @@ class _HomeScreenState extends State<HomeScreenProduk>
   }
 
   @override
+  void dispose() {
+    _tabController.removeListener(filterProducts);
+    _tabController.dispose();
+    cartCountNotifier.dispose();
+    super.dispose();
+  }
+
+  // Show Cart Modal (Popup)
+  void _showCartPopup() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> cart = prefs.getStringList('cart') ?? [];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Your Cart"),
+          content: Container(
+            width: double.maxFinite,
+            height: 300, // Set a fixed height for the list
+            child: cart.isEmpty
+                ? Center(child: Text("Your cart is empty."))
+                : ListView.builder(
+                    itemCount: cart.length,
+                    itemBuilder: (context, index) {
+                      var product = jsonDecode(cart[index]);
+                      return ListTile(
+                        leading: Image.network(
+                          product["gambar"],
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
+                        title: Text(product["nama_produk"]),
+                        subtitle: Text("Rp ${product["harga"]}"),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            cart.removeAt(index);
+                            await prefs.setStringList('cart', cart);
+                            cartCountNotifier.value = cart.length;
+                            setState(() {});
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Close"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Hi, $loggedInUsername", // Gantilah dengan username yang login
+          "Hi, $loggedInUsername",
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
         backgroundColor: Colors.orange.shade700,
+        actions: [
+          ValueListenableBuilder<int>(
+            valueListenable: cartCountNotifier,
+            builder: (context, cartCount, _) {
+              return IconButton(
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(Icons.shopping_cart),
+                    if (cartCount > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: CircleAvatar(
+                          radius: 10,
+                          backgroundColor: Colors.red,
+                          child: Text(
+                            '$cartCount',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                onPressed: _showCartPopup, // Show cart popup
+              );
+            },
+          ),
+        ],
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Banner Gambar
                 Container(
                   margin: EdgeInsets.all(10),
                   height: 180,
@@ -98,36 +192,7 @@ class _HomeScreenState extends State<HomeScreenProduk>
                       fit: BoxFit.cover,
                     ),
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withOpacity(0.6),
-                          Colors.transparent
-                        ],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(15),
-                      child: Align(
-                        alignment: Alignment.bottomLeft,
-                        child: Text(
-                          "Makanan dan Minuman Lezat 🍜\nKantin Modern.",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
-
-                // TabBar (Makanan & Minuman)
                 Container(
                   margin: EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
@@ -152,8 +217,6 @@ class _HomeScreenState extends State<HomeScreenProduk>
                     ],
                   ),
                 ),
-
-                // Grid List Produk berdasarkan kategori
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.all(10),
@@ -167,7 +230,10 @@ class _HomeScreenState extends State<HomeScreenProduk>
                       itemCount: filteredProducts.length,
                       itemBuilder: (context, index) {
                         var product = filteredProducts[index];
-                        return ProductCard(product: product);
+                        return ProductCard(
+                          product: product,
+                          onCartUpdated: _loadCartCount,
+                        );
                       },
                     ),
                   ),
@@ -180,8 +246,25 @@ class _HomeScreenState extends State<HomeScreenProduk>
 
 class ProductCard extends StatelessWidget {
   final dynamic product;
+  final VoidCallback onCartUpdated;
 
-  ProductCard({required this.product});
+  ProductCard({required this.product, required this.onCartUpdated});
+
+  Future<void> _addToCart(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> cart = prefs.getStringList('cart') ?? [];
+    cart.add(jsonEncode(product));
+    await prefs.setStringList('cart', cart);
+
+    onCartUpdated(); // Update the cart count when an item is added
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("${product["nama_produk"]} ditambahkan ke keranjang!"),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +276,6 @@ class ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Gambar Produk
           ClipRRect(
             borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             child: Image.network(
@@ -210,7 +292,6 @@ class ProductCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nama Produk
                 Text(
                   product["nama_produk"],
                   style: GoogleFonts.poppins(
@@ -221,8 +302,6 @@ class ProductCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 5),
-
-                // Harga Produk dalam format Rupiah
                 Text(
                   "Rp ${product["harga"]}",
                   style: GoogleFonts.poppins(
@@ -235,29 +314,9 @@ class ProductCard extends StatelessWidget {
             ),
           ),
           Spacer(),
-
-          // Tombol Tambah ke Keranjang
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.orange.shade700,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.shopping_cart, color: Colors.white),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        "${product["nama_produk"]} ditambahkan ke keranjang!"),
-                    duration: Duration(seconds: 1),
-                  ),
-                );
-              },
-            ),
+          IconButton(
+            icon: Icon(Icons.shopping_cart, color: Colors.orange.shade700),
+            onPressed: () => _addToCart(context),
           ),
         ],
       ),

@@ -59,15 +59,14 @@ class DashboardAdmin extends StatelessWidget {
                         const Color.fromARGB(255, 0, 140, 255)),
                     _buildCard('Add Product', LucideIcons.plusCircle,
                         const Color.fromARGB(255, 149, 164, 176), context),
-                    _buildCard('Products', LucideIcons.box,
-                        const Color.fromARGB(255, 164, 170, 176)),
+                    _buildCard('', LucideIcons.layout, Colors.blue.shade600),
                     _buildCard('', LucideIcons.layout, Colors.blue.shade600),
                   ],
                 ),
               ),
             ),
           ),
-           // Tambahkan tombol untuk navigasi ke ProductListWidget
+          // Tambahkan tombol untuk navigasi ke ProductListWidget
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
@@ -110,7 +109,7 @@ class DashboardAdmin extends StatelessWidget {
       color: color,
       elevation: 4,
       child: InkWell(
-      onTap: () {
+        onTap: () {
           if (title == 'Add Product' && context != null) {
             _showAddProductForm(context);
           }
@@ -241,7 +240,8 @@ class ProductListWidget extends StatefulWidget {
   @override
   _ProductListWidgetState createState() => _ProductListWidgetState();
 }
-// class widgetnya 
+
+// class widgetnya
 class _ProductListWidgetState extends State<ProductListWidget> {
   late Future<List<UpdateDeleteProduct.Product>> _productsFuture;
 
@@ -250,8 +250,6 @@ class _ProductListWidgetState extends State<ProductListWidget> {
     super.initState();
     _productsFuture = widget.produkService.getProducts();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -289,17 +287,22 @@ class _ProductListWidgetState extends State<ProductListWidget> {
                     IconButton(
                       icon: Icon(Icons.delete),
                       onPressed: () {
-                        widget.produkService.deleteProduct(product.id).then((success) {
+                        widget.produkService
+                            .deleteProduct(product.id)
+                            .then((success) {
                           if (success) {
                             setState(() {
-                              _productsFuture = widget.produkService.getProducts(); // Refresh data
+                              _productsFuture = widget.produkService
+                                  .getProducts(); // Refresh data
                             });
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Produk berhasil dihapus!')),
+                              SnackBar(
+                                  content: Text('Produk berhasil dihapus!')),
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Gagal menghapus produk!')),
+                              SnackBar(
+                                  content: Text('Gagal menghapus produk!')),
                             );
                           }
                         });
@@ -314,160 +317,169 @@ class _ProductListWidgetState extends State<ProductListWidget> {
       },
     );
   }
-  // untuk form editnya 
-void _showEditProductForm(BuildContext context, UpdateDeleteProduct.Product product) {
-  final TextEditingController namaController = TextEditingController(text: product.namaProduk);
-  final TextEditingController deskripsiController = TextEditingController(text: product.deskripsi);
-  final TextEditingController hargaController = TextEditingController(text: product.harga.toString());
-  final TextEditingController gambarController = TextEditingController(text: product.gambar);
-  final TextEditingController stokController = TextEditingController(text: product.stok.toString());
-  String kategori = product.kategori;
 
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Edit Product', style: GoogleFonts.poppins()),
-      content: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildTextField(namaController, 'Nama Produk'),
-            _buildTextField(deskripsiController, 'Deskripsi'),
-            _buildTextField(hargaController, 'Harga', TextInputType.number),
-            _buildTextField(gambarController, 'Gambar URL'),
-            _buildTextField(stokController, 'Stok', TextInputType.number),
-            DropdownButtonFormField<String>(
-              value: kategori,
-              items: ['Makanan', 'Minuman']
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  kategori = value;
-                }
-              },
-              decoration: const InputDecoration(labelText: 'Kategori'),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (namaController.text.isEmpty ||
-                deskripsiController.text.isEmpty ||
-                hargaController.text.isEmpty ||
-                gambarController.text.isEmpty ||
-                stokController.text.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Semua kolom harus diisi!')),
-              );
-              return;
-            }
+  // untuk form editnya
+  void _showEditProductForm(
+      BuildContext context, UpdateDeleteProduct.Product product) {
+    final TextEditingController namaController =
+        TextEditingController(text: product.namaProduk);
+    final TextEditingController deskripsiController =
+        TextEditingController(text: product.deskripsi);
+    final TextEditingController hargaController =
+        TextEditingController(text: product.harga.toString());
+    final TextEditingController gambarController =
+        TextEditingController(text: product.gambar);
+    final TextEditingController stokController =
+        TextEditingController(text: product.stok.toString());
+    String kategori = product.kategori;
 
-            UpdateDeleteProduct.Product updatedProduct = UpdateDeleteProduct.Product(
-              id: product.id,
-              namaProduk: namaController.text,
-              deskripsi: deskripsiController.text,
-              harga: double.tryParse(hargaController.text) ?? 0.0,
-              gambar: gambarController.text,
-              stok: int.tryParse(stokController.text) ?? 0,
-              kategori: kategori,
-            );
-
-            bool success = await widget.produkService.updateProduct(updatedProduct);
-
-            // Tampilkan dialog setelah proses update
-            Future.delayed(Duration(milliseconds: 500), () {
-              Navigator.pop(context);
-
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text('Update Produk', style: GoogleFonts.poppins()),
-                  content: Text(
-                    success
-                        ? 'Produk "${updatedProduct.namaProduk}" berhasil diperbarui! 🎉'
-                        : 'Gagal memperbarui produk: ${updatedProduct.namaProduk}. Pastikan data benar dan coba lagi! ❌',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);  // Tutup dialog
-                      },
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (success) {
-                setState(() {
-                  _productsFuture = widget.produkService.getProducts(); // Refresh data
-                });
-              }
-            });
-          },
-          child: const Text('Update'),
-        ),
-      ],
-    ),
-  );
-}
-
-void _deleteProduct(BuildContext context, String productId) {
-  // Debugging: Pastikan fungsi delete dipanggil
-  print("Deleting product with id: $productId");
-
-  widget.produkService.deleteProduct(productId).then((success) {
-    // Debugging: Pastikan status success atau gagal
-    print("Delete success: $success");
-
-    // Tampilkan dialog setelah proses delete selesai
-    Future.delayed(Duration(milliseconds: 500), () {
-      Navigator.pop(context); // Tutup dialog delete jika ada
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Delete Produk', style: GoogleFonts.poppins()),
-          content: Text(
-            success
-                ? 'Produk berhasil dihapus! 🎉'
-                : 'Gagal menghapus produk! ❌',
-            style: TextStyle(fontSize: 16),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Product', style: GoogleFonts.poppins()),
+        content: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildTextField(namaController, 'Nama Produk'),
+              _buildTextField(deskripsiController, 'Deskripsi'),
+              _buildTextField(hargaController, 'Harga', TextInputType.number),
+              _buildTextField(gambarController, 'Gambar URL'),
+              _buildTextField(stokController, 'Stok', TextInputType.number),
+              DropdownButtonFormField<String>(
+                value: kategori,
+                items: ['Makanan', 'Minuman']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    kategori = value;
+                  }
+                },
+                decoration: const InputDecoration(labelText: 'Kategori'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);  // Tutup dialog
-              },
-              child: const Text('OK'),
-            ),
-          ],
         ),
-      );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (namaController.text.isEmpty ||
+                  deskripsiController.text.isEmpty ||
+                  hargaController.text.isEmpty ||
+                  gambarController.text.isEmpty ||
+                  stokController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Semua kolom harus diisi!')),
+                );
+                return;
+              }
 
-      // Jika berhasil, refresh data produk di UI
-      if (success) {
-        setState(() {
-          _productsFuture = widget.produkService.getProducts(); // Refresh data
-        });
-      }
-    });
-  }).catchError((e) {
-    print("Error deleting product: $e"); // Menangani error jika ada
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Terjadi kesalahan saat menghapus produk!')),
+              UpdateDeleteProduct.Product updatedProduct =
+                  UpdateDeleteProduct.Product(
+                id: product.id,
+                namaProduk: namaController.text,
+                deskripsi: deskripsiController.text,
+                harga: double.tryParse(hargaController.text) ?? 0.0,
+                gambar: gambarController.text,
+                stok: int.tryParse(stokController.text) ?? 0,
+                kategori: kategori,
+              );
+
+              bool success =
+                  await widget.produkService.updateProduct(updatedProduct);
+
+              // Tampilkan dialog setelah proses update
+              Future.delayed(Duration(milliseconds: 500), () {
+                Navigator.pop(context);
+
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Update Produk', style: GoogleFonts.poppins()),
+                    content: Text(
+                      success
+                          ? 'Produk "${updatedProduct.namaProduk}" berhasil diperbarui! 🎉'
+                          : 'Gagal memperbarui produk: ${updatedProduct.namaProduk}. Pastikan data benar dan coba lagi! ❌',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context); // Tutup dialog
+                        },
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (success) {
+                  setState(() {
+                    _productsFuture =
+                        widget.produkService.getProducts(); // Refresh data
+                  });
+                }
+              });
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
     );
-  });
-}
+  }
 
+  void _deleteProduct(BuildContext context, String productId) {
+    // Debugging: Pastikan fungsi delete dipanggil
+    print("Deleting product with id: $productId");
 
+    widget.produkService.deleteProduct(productId).then((success) {
+      // Debugging: Pastikan status success atau gagal
+      print("Delete success: $success");
+
+      // Tampilkan dialog setelah proses delete selesai
+      Future.delayed(Duration(milliseconds: 500), () {
+        Navigator.pop(context); // Tutup dialog delete jika ada
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Delete Produk', style: GoogleFonts.poppins()),
+            content: Text(
+              success
+                  ? 'Produk berhasil dihapus! 🎉'
+                  : 'Gagal menghapus produk! ❌',
+              style: TextStyle(fontSize: 16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Tutup dialog
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+
+        // Jika berhasil, refresh data produk di UI
+        if (success) {
+          setState(() {
+            _productsFuture =
+                widget.produkService.getProducts(); // Refresh data
+          });
+        }
+      });
+    }).catchError((e) {
+      print("Error deleting product: $e"); // Menangani error jika ada
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan saat menghapus produk!')),
+      );
+    });
+  }
 
   // Menambahkan fungsi _buildTextField di luar _showEditProductForm
   Widget _buildTextField(TextEditingController controller, String label,
@@ -485,7 +497,7 @@ void _deleteProduct(BuildContext context, String productId) {
     );
   }
 
-   dynamic displaySnackbar(String msg) {
+  dynamic displaySnackbar(String msg) {
     return ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
   }

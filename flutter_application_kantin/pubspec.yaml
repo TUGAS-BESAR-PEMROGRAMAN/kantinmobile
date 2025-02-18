@@ -17,6 +17,9 @@ dependencies:
   shared_preferences: ^2.5.2
   http: ^1.0.0  
   flutter_cors: ^1.0.0
+  intl: ^0.18.0  
+  provider: ^6.0.5
+  
 
 
 dev_dependencies:

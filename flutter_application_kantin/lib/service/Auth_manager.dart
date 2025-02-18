@@ -41,6 +41,7 @@ class AuthManager {
 
   static Future<void> logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+
     prefs.remove('loginStatusKey');
     prefs.remove('loginTimeKey');
     prefs.remove('username');
